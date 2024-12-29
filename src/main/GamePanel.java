@@ -3,8 +3,10 @@ package main;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.util.ArrayList;
 
 import javax.swing.JPanel;
@@ -68,7 +70,7 @@ public class GamePanel extends JPanel implements Runnable {
     	pieces.add(new Pawn(WHITE,7,6));
     	pieces.add(new Rook(WHITE,0,7));
     	pieces.add(new Rook(WHITE,7,7));
-    	pieces.add(new Knight(WHITE,4,4));
+    	pieces.add(new Knight(WHITE,1,7));
     	pieces.add(new Knight(WHITE,6,7));
     	pieces.add(new Bishop(WHITE,2,7));
     	pieces.add(new Bishop(WHITE,5,7));
@@ -95,13 +97,12 @@ public class GamePanel extends JPanel implements Runnable {
     	pieces.add(new King(BLACK,4,0));
     }
 
-    private void copyPieces(ArrayList<Piece>source, ArrayList<Piece>target) {
-		
-    	target.clear();
-    	for(int i = 0; i < source.size();i++) {
-    		target.add(source.get(i));
-    	}
-	}
+    private void copyPieces(ArrayList<Piece> source, ArrayList<Piece> target) {
+        target.clear();  // Clear the target list to avoid stale data
+        for (int i = 0; i < source.size(); i++) {
+            target.add(source.get(i));
+        }
+    }
     
     @Override
     public void run() {
@@ -147,51 +148,58 @@ public class GamePanel extends JPanel implements Runnable {
     	
     	////// 	MOUSE BUTTON RELEASRED /////
     	if (mouse.pressed == false) {
-    		
     	    if (activeP != null) {
-    	    	
     	        if (validSquare) {
-    	        	copyPieces(simPieces, pieces);
-    	            activeP.updatePosition(); // Update position after a valid move
-//    	            activeP = null; // Reset active piece
+    	            copyPieces(simPieces, pieces);
+    	            activeP.updatePosition(); // Update the piece's position after a valid move
+    	            
+    	            cahngeplayer();
+    	            
     	        } else {
-    	        	copyPieces(pieces,simPieces);
-    	            activeP.resetPosition(); // Reset to original position if invalid
-    	            activeP = null;
+    	            copyPieces(pieces, simPieces);
+    	            activeP.resetPosition(); // Reset to the original position if invalid
+    	            activeP = null; // Clear active piece
     	        }
     	    }
     	}
+
     }
     
     private void simulate() {
-    	
-    	canMove = false;
-    	validSquare = false;
-    	
-    	copyPieces(pieces, simPieces);
-    	
-    	//If a piece is being held, update its position
-    	activeP.x = mouse.x - Board.HALF_SQUARE_SIZE;
-    	activeP.y = mouse.y - Board.HALF_SQUARE_SIZE;
-    	activeP.col = activeP.getCol(activeP.x);
-    	activeP.row = activeP.getRow(activeP.y);
-    	
-    	// Check if  the piece is having over a reachable square
-    	if(activeP.canMove(activeP.col,activeP.row)) {
-    		
-        	canMove = true;
-        	
-        	//If hitting a piece, remove it from the list
-        	if(activeP.hittingP != null) {
-        		simPieces.remove(activeP.hittingP.getIndex());
-        	}
-        	
-        	validSquare = true;
+        canMove = false;
+        validSquare = false;
+
+        copyPieces(pieces, simPieces);  // Copy the current state to simulate the move
+
+        // Update the active piece's position
+        activeP.x = mouse.x - Board.HALF_SQUARE_SIZE;
+        activeP.y = mouse.y - Board.HALF_SQUARE_SIZE;
+        activeP.col = activeP.getCol(activeP.x);
+        activeP.row = activeP.getRow(activeP.y);
+
+        // Check if the piece can move to the new position
+        if (activeP.canMove(activeP.col, activeP.row)) {
+            canMove = true;
+
+            // If the piece is over an enemy piece, remove it (capture)
+            if (activeP.hittingP != null) {
+                simPieces.remove(activeP.hittingP.getIndex());
+            }
+
+            validSquare = true;
+        }
+    }
+    private void cahngeplayer() {
+    	if(currentColor == WHITE) {
+    		currentColor = BLACK;
     	}
+    	else {
+    		currentColor = WHITE;
+    	}
+    	activeP = null;
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
+    public void paintComponent(Graphics g) {
         super.paintComponent(g); 
         Graphics2D g2 = (Graphics2D) g;
 
@@ -214,6 +222,17 @@ public class GamePanel extends JPanel implements Runnable {
         	}
         	
         	activeP.draw(g2);
+        }
+        
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setFont(new Font("Book Antiqua", Font.PLAIN,40));
+        g2.setColor(Color.white);
+        
+        if(currentColor == WHITE) {
+        	g2.drawString("White's turn", 840, 550);
+        }
+        else{
+        	g2.drawString("Black's turn", 840, 550);
         }
     }
 }
