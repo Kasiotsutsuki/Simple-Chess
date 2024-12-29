@@ -35,6 +35,10 @@ public class GamePanel extends JPanel implements Runnable {
     public static final int WHITE = 0;
     public static final int BLACK = 1;
     int currentColor = WHITE;
+    
+    // Booleans
+    boolean canMove;
+    boolean validSquare;
 
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -69,7 +73,7 @@ public class GamePanel extends JPanel implements Runnable {
     	pieces.add(new Bishop(WHITE,2,7));
     	pieces.add(new Bishop(WHITE,5,7));
     	pieces.add(new Queen(WHITE,3,7));
-    	pieces.add(new King(WHITE,4,7));
+    	pieces.add(new King(WHITE,4,4));
     	
     	
     	//black team
@@ -142,20 +146,48 @@ public class GamePanel extends JPanel implements Runnable {
     	}
     	
     	////// 	MOUSE BUTTON RELEASRED /////
-    	if(mouse.pressed == false) {	
-    		if(activeP != null) {
-    			activeP.updatePosition();
-    			activeP = null;
-    		}
+    	if (mouse.pressed == false) {
+    		
+    	    if (activeP != null) {
+    	    	
+    	        if (validSquare) {
+    	        	copyPieces(simPieces, pieces);
+    	            activeP.updatePosition(); // Update position after a valid move
+//    	            activeP = null; // Reset active piece
+    	        } else {
+    	        	copyPieces(pieces,simPieces);
+    	            activeP.resetPosition(); // Reset to original position if invalid
+    	            activeP = null;
+    	        }
+    	    }
     	}
     }
     
     private void simulate() {
     	
+    	canMove = false;
+    	validSquare = false;
+    	
+    	copyPieces(pieces, simPieces);
+    	
+    	//If a piece is being held, update its position
     	activeP.x = mouse.x - Board.HALF_SQUARE_SIZE;
     	activeP.y = mouse.y - Board.HALF_SQUARE_SIZE;
     	activeP.col = activeP.getCol(activeP.x);
     	activeP.row = activeP.getRow(activeP.y);
+    	
+    	// Check if  the piece is having over a reachable square
+    	if(activeP.canMove(activeP.col,activeP.row)) {
+    		
+        	canMove = true;
+        	
+        	//If hitting a piece, remove it from the list
+        	if(activeP.hittingP != null) {
+        		simPieces.remove(activeP.hittingP.getIndex());
+        	}
+        	
+        	validSquare = true;
+    	}
     }
 
     @Override
@@ -173,12 +205,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
         
         if(activeP != null) {
-        	g2.setColor(Color.white);
-        	g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-        	g2.fillRect(activeP.col*Board.SQUARE_SIZE, activeP.row*Board.SQUARE_SIZE,
-        			Board.SQUARE_SIZE, Board.SQUARE_SIZE);
-        	g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,1f));
-        	
+        	if(canMove) {
+	        	g2.setColor(Color.white);
+	        	g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+	        	g2.fillRect(activeP.col*Board.SQUARE_SIZE, activeP.row*Board.SQUARE_SIZE,
+	        			Board.SQUARE_SIZE, Board.SQUARE_SIZE);
+	        	g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,1f));
+        	}
         	
         	activeP.draw(g2);
         }
